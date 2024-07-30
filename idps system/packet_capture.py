@@ -3,8 +3,12 @@ import sys
 from scapy.all import sniff, IP, TCP, UDP
 import argparse
 from datetime import datetime
+
+# Generate the log filename with the current date
+log_filename = f"packetcapture_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.log"
+
 # Configure logging
-logging.basicConfig(filename='packet_capture.log', level=logging.INFO, 
+logging.basicConfig(filename=log_filename, level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 def packet_handler(packet):
@@ -15,7 +19,6 @@ def packet_handler(packet):
             ip_dst = packet[IP].dst
             proto = packet[IP].proto
             now_time = datetime.now().replace(microsecond=0)
-            
             
             if proto == 6:  # TCP
                 if TCP in packet:
