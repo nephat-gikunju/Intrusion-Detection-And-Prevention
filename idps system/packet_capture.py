@@ -1,6 +1,6 @@
 import logging
 import sys
-from scapy.all import sniff, IP, TCP, UDP
+from scapy.all import sniff, IP, TCP, UDP ,Raw
 import argparse
 from datetime import datetime
 
@@ -19,25 +19,32 @@ def packet_handler(packet):
             ip_dst = packet[IP].dst
             proto = packet[IP].proto
             now_time = datetime.now().replace(microsecond=0)
+            packet_len = len(packet)
             
             if proto == 6:  # TCP
                 if TCP in packet:
                     tcp_sport = packet[TCP].sport
                     tcp_dport = packet[TCP].dport
-                    log_msg = f"TCP Packet: {ip_src}:{tcp_sport} -> {ip_dst}:{tcp_dport} :{now_time}"
+                    if Raw in packet:
+                        payload= packet[Raw].load
+                        payload_content= payload.decode(errors='ignore')
+                    else:
+                        payload_content= None
+                    log_msg = f"TCP Packet: {ip_src}:{tcp_sport} -> {ip_dst}:{tcp_dport}  len={packet_len} , payload:{payload_content} :{now_time}"
                     print(log_msg)
                     logging.info(log_msg)
+                    
             
             elif proto == 17:  # UDP
                 if UDP in packet:
                     udp_sport = packet[UDP].sport
                     udp_dport = packet[UDP].dport
-                    log_msg = f"UDP Packet: {ip_src}:{udp_sport} -> {ip_dst}:{udp_dport} :{now_time}"
+                    log_msg = f"UDP Packet: {ip_src}:{udp_sport} -> {ip_dst}:{udp_dport} len={packet_len} :{now_time}"
                     print(log_msg)
                     logging.info(log_msg)
             
             else:
-                log_msg = f"Other IP Packet: {ip_src} -> {ip_dst} (Protocol: {proto}) :{now_time}"
+                log_msg = f"Other IP Packet: {ip_src} -> {ip_dst} (Protocol: {proto}) len={packet_len} :{now_time}"
                 print(log_msg)
                 logging.info(log_msg)
     except Exception as e:
