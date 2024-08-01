@@ -12,41 +12,18 @@ logging.basicConfig(filename=log_filename, level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 def packet_handler(packet):
-    print("Packet received")  # Debugging statement
+    #print("Packet received")  # Debugging statement
     try:
         if IP in packet:
             ip_src = packet[IP].src
             ip_dst = packet[IP].dst
             proto = packet[IP].proto
             now_time = datetime.now().replace(microsecond=0)
-            packet_len = len(packet)
-            
-            if proto == 6:  # TCP
-                if TCP in packet:
-                    tcp_sport = packet[TCP].sport
-                    tcp_dport = packet[TCP].dport
-                    if Raw in packet:
-                        payload= packet[Raw].load
-                        payload_content= payload.decode(errors='ignore')
-                    else:
-                        payload_content= None
-                    log_msg = f"TCP Packet: {ip_src}:{tcp_sport} -> {ip_dst}:{tcp_dport}  len={packet_len} , payload:{payload_content} :{now_time}"
-                    print(log_msg)
-                    logging.info(log_msg)
-                    
-            
-            elif proto == 17:  # UDP
-                if UDP in packet:
-                    udp_sport = packet[UDP].sport
-                    udp_dport = packet[UDP].dport
-                    log_msg = f"UDP Packet: {ip_src}:{udp_sport} -> {ip_dst}:{udp_dport} len={packet_len} :{now_time}"
-                    print(log_msg)
-                    logging.info(log_msg)
-            
-            else:
-                log_msg = f"Other IP Packet: {ip_src} -> {ip_dst} (Protocol: {proto}) len={packet_len} :{now_time}"
-                print(log_msg)
-                logging.info(log_msg)
+            packet_len = len(packet)            
+ 
+        log_msg = f"{ip_src} -- [{now_time}] {ip_src} --> {ip_dst} (Protocol: {proto}) len={packet_len} "
+        print(log_msg)
+        logging.info(log_msg)
     except Exception as e:
         print(f"Error processing packet: {e}")
         logging.error(f"Error processing packet: {e}")
