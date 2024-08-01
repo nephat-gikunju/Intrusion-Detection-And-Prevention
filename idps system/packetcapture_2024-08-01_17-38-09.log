@@ -1,4 +1,0 @@
-01/Aug/2024 17:38:09 - Script started
-01/Aug/2024 17:38:09 - Arguments parsed. Interface: lo, Filter: 
-01/Aug/2024 17:38:09 - Starting packet capture on lo with filter ''
-01/Aug/2024 17:38:09 - Error during packet capture: [Errno 1] Operation not permitted

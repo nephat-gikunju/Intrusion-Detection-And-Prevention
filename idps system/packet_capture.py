@@ -1,29 +1,72 @@
 import logging
 import sys
-from scapy.all import sniff, IP, TCP, UDP ,Raw
+from scapy.all import sniff, IP, TCP, UDP, Raw
 import argparse
 from datetime import datetime
 
 # Generate the log filename with the current date
-log_filename = f"packetcapture_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.log"
+log_filename = f"packetcapture_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
 
 # Configure logging
 logging.basicConfig(filename=log_filename, level=logging.INFO, 
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+                    format='%(asctime)s - %(message)s', datefmt='%d/%b/%Y %H:%M:%S')
 
 def packet_handler(packet):
-    #print("Packet received")  # Debugging statement
     try:
         if IP in packet:
             ip_src = packet[IP].src
             ip_dst = packet[IP].dst
             proto = packet[IP].proto
-            now_time = datetime.now().replace(microsecond=0)
-            packet_len = len(packet)            
- 
-        log_msg = f"{ip_src} -- [{now_time}] {ip_src} --> {ip_dst} (Protocol: {proto}) len={packet_len} "
-        print(log_msg)
-        logging.info(log_msg)
+            packet_len = len(packet)
+            now_time = datetime.now().strftime('%d/%b/%Y %H:%M:%S')
+
+            if proto == 6:  # TCP
+                if TCP in packet:
+                    tcp_sport = packet[TCP].sport
+                    tcp_dport = packet[TCP].dport
+                    if Raw in packet:
+                        payload = packet[Raw].load
+                        try:
+                            # Decode the payload and split it by lines
+                            payload_content = payload.decode(errors='ignore')
+                            lines = payload_content.split('\r\n')
+
+                            # Extract the first line (HTTP request line) and the status code
+                            if len(lines) > 0:
+                                request_line = lines[0]
+
+                                if request_line.startswith("GET") or request_line.startswith("POST"):
+                                    # HTTP Request line (method, path, protocol)
+                                    log_msg = f"{ip_src} - - [{now_time}] TCP {proto} {ip_src}:{tcp_sport} -> {ip_dst}:{tcp_dport} len={packet_len} \"{request_line}\""
+                                    print(log_msg)
+                                    logging.info(log_msg)
+                                elif request_line.startswith("HTTP"):
+                                    # HTTP Response line (protocol, status code, status message)
+                                    status_code = request_line.split(' ')[1]
+                                    log_msg = f"{ip_src} - - [{now_time}] TCP {proto} {ip_src}:{tcp_sport} -> {ip_dst}:{tcp_dport} len={packet_len} \"{request_line}\" {status_code} -"
+                                    print(log_msg)
+                                    logging.info(log_msg)
+                        except Exception as e:
+                            print(f"Error processing HTTP payload: {e}")
+                            logging.error(f"Error processing HTTP payload: {e}")
+                    else:
+                        log_msg = f"{ip_src} - - [{now_time}] TCP {proto} {ip_src}:{tcp_sport} -> {ip_dst}:{tcp_dport} len={packet_len}"
+                        print(log_msg)
+                        logging.info(log_msg)
+
+            elif proto == 17:  # UDP
+                if UDP in packet:
+                    udp_sport = packet[UDP].sport
+                    udp_dport = packet[UDP].dport
+                    log_msg = f"{ip_src} - - [{now_time}] UDP {proto} {ip_src}:{udp_sport} -> {ip_dst}:{udp_dport} len={packet_len}"
+                    print(log_msg)
+                    logging.info(log_msg)
+
+            else:
+                log_msg = f"{ip_src} - - [{now_time}] Protocol {proto} {ip_src} -> {ip_dst} len={packet_len}"
+                print(log_msg)
+                logging.info(log_msg)
+
     except Exception as e:
         print(f"Error processing packet: {e}")
         logging.error(f"Error processing packet: {e}")
@@ -44,7 +87,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Packet capture module for IDS')
     parser.add_argument('-i', '--interface', type=str, required=True, help='Network interface to capture packets from')
     parser.add_argument('-f', '--filter', type=str, default='', help='Filter expression for packet capture (e.g., "tcp", "udp")')
-    
+
     try:
         args = parser.parse_args()
         print(f"Arguments parsed. Interface: {args.interface}, Filter: {args.filter}")
